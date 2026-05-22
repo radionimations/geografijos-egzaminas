@@ -1,0 +1,954 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Rivers &amp; Lakes Map Quiz</title>
+<style>
+  :root{
+    --bg:#16181d;
+    --panel:#1d2026;
+    --panel2:#262931;
+    --inset:#131419;
+    --line:#383c46;
+    --line2:#4a4f5b;
+    --text:#e7e5e0;
+    --muted:#969890;
+    --accent:#2f8fd6;
+    --accent-h:#56a8e2;
+    --ink:#0b1620;
+    --ok:#6aa86f;
+    --bad:#cf6056;
+    --river:#6f9fc9;
+    --lake:#57b0a1;
+    --range:#cf9a52;
+    --peak:#c98fd0;
+    --volcano:#e0795a;
+  }
+  body.superhard{
+    --accent:#dd5750;
+    --accent-h:#ec716b;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{
+    font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
+    background:var(--bg);
+    color:var(--text);min-height:100vh;padding:22px 18px;
+    -webkit-tap-highlight-color:transparent;
+    -webkit-user-select:none;user-select:none;
+  }
+  #app{max-width:1060px;margin:0 auto;}
+  header{position:relative;margin-bottom:18px;padding-bottom:14px;border-bottom:1px solid var(--line);}
+  header h1{font-size:1.25rem;font-weight:800;letter-spacing:.16em;text-transform:uppercase;}
+  header p{color:var(--muted);font-size:.83rem;margin-top:6px;}
+  .lang-btns{position:absolute;right:0;top:0;display:flex;}
+  .lang-btn{
+    font:inherit;font-size:.76rem;font-weight:800;cursor:pointer;letter-spacing:.06em;
+    background:var(--panel2);border:1px solid var(--line2);color:var(--muted);padding:7px 12px;
+  }
+  .lang-btn+.lang-btn{border-left:0;}
+  .lang-btn.on{background:var(--accent);color:var(--ink);border-color:var(--accent);}
+
+  .panel{background:var(--panel);border:1px solid var(--line);padding:22px;}
+  .hidden{display:none!important;}
+  .btn{
+    font:inherit;font-weight:700;cursor:pointer;color:var(--text);
+    background:var(--panel2);border:1px solid var(--line2);
+    border-radius:3px;padding:11px 16px;
+  }
+  .btn:hover{background:#31353f;border-color:var(--muted);}
+  .btn:active{background:#3a3f4a;}
+  .btn.primary{background:var(--accent);color:var(--ink);border-color:var(--accent);}
+  .btn.primary:hover{background:var(--accent-h);border-color:var(--accent-h);}
+  .btn.small{padding:8px 12px;font-size:.85rem;}
+  .btn.danger{background:#dd5750;color:var(--ink);border-color:#dd5750;}
+  .btn.danger:hover{background:#ec716b;border-color:#ec716b;}
+
+  .intro{color:var(--muted);font-size:.9rem;line-height:1.6;margin-bottom:16px;}
+  .opt-row{
+    display:flex;align-items:center;gap:12px;flex-wrap:wrap;
+    background:var(--inset);border:1px solid var(--line);padding:12px 14px;margin-bottom:16px;
+  }
+  .opt-toggle{
+    font:inherit;font-weight:700;font-size:.86rem;cursor:pointer;
+    background:var(--panel2);border:1px solid var(--line2);color:var(--muted);
+    border-radius:3px;padding:9px 13px;white-space:nowrap;
+  }
+  .opt-toggle.on{background:var(--accent);color:var(--ink);border-color:var(--accent);}
+  .opt-hint{color:var(--muted);font-size:.8rem;line-height:1.5;}
+
+  .menu-grid{display:grid;gap:10px;grid-template-columns:1fr 1fr;}
+  .menu-grid .btn{padding:17px;text-align:left;}
+  .menu-grid .btn b{display:block;font-size:.98rem;letter-spacing:.02em;}
+  .menu-grid .btn span{display:block;color:var(--muted);font-weight:400;font-size:.81rem;margin-top:5px;}
+  .menu-grid .btn.primary span,.menu-grid .btn.danger span{color:rgba(11,22,32,.6);}
+  .menu-grid .wide{grid-column:1/-1;}
+  .sh-only{display:none;}
+  body.superhard .sh-only{display:block;}
+
+  .hud{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px;}
+  .prompt{font-size:1.15rem;font-weight:700;}
+  .prompt b{color:var(--accent);}
+  .chip{
+    font-size:.66rem;font-weight:800;text-transform:uppercase;letter-spacing:.11em;
+    padding:4px 8px;border:1px solid currentColor;
+  }
+  .chip.river{color:var(--river);}
+  .chip.lake{color:var(--lake);}
+  .chip.range{color:var(--range);}
+  .chip.peak{color:var(--peak);}
+  .chip.volcano{color:var(--volcano);}
+  .hud .spacer,.feedback .spacer{flex:1;}
+  .stat{font-size:.82rem;color:var(--muted);}
+  .stat b{color:var(--text);}
+  .progress{height:6px;background:var(--inset);border:1px solid var(--line);overflow:hidden;margin-bottom:12px;}
+  .progress > div{height:100%;background:var(--accent);width:0;}
+
+  .map-controls{display:flex;gap:6px;align-items:center;margin-bottom:8px;flex-wrap:wrap;}
+  .map-controls .hint{color:var(--muted);font-size:.78rem;margin-left:auto;}
+  .map-shell{
+    position:relative;width:100%;overflow:hidden;
+    border:1px solid var(--line2);background:#1b2733;
+  }
+  svg#map{display:block;width:100%;height:auto;cursor:grab;touch-action:none;}
+  svg#map.grabbing{cursor:grabbing;}
+  .banner{
+    position:absolute;top:8px;left:50%;transform:translateX(-50%);
+    background:var(--bad);color:#fff;font-size:.78rem;font-weight:700;
+    padding:6px 12px;text-align:center;
+  }
+
+  .feedback{margin-top:14px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;min-height:46px;}
+  .verdict{font-size:.98rem;font-weight:700;}
+  .verdict.ok{color:var(--ok);}
+  .verdict.bad{color:var(--bad);}
+  .verdict small{display:block;color:var(--muted);font-weight:400;font-size:.82rem;margin-top:3px;}
+
+  .toggle{
+    background:var(--panel2);border:1px solid var(--line2);border-radius:3px;
+    padding:8px 13px;font:inherit;font-size:.84rem;font-weight:700;cursor:pointer;color:var(--muted);
+  }
+  .toggle.on{color:var(--text);border-color:var(--muted);}
+  .toggle.river.on{color:var(--river);border-color:var(--river);}
+  .toggle.lake.on{color:var(--lake);border-color:var(--lake);}
+  .toggle.range.on{color:var(--range);border-color:var(--range);}
+  .toggle.peak.on{color:var(--peak);border-color:var(--peak);}
+  .toggle.volcano.on{color:var(--volcano);border-color:var(--volcano);}
+
+  #end{text-align:center;}
+  #end h2{margin-bottom:4px;font-size:1.05rem;text-transform:uppercase;letter-spacing:.13em;}
+  .score-big{font-size:1.45rem;font-weight:800;margin:4px 0;}
+  .score-big small{font-size:.9rem;color:var(--muted);font-weight:500;}
+  #gradeWrap{margin:18px 0 8px;}
+  .grade-badge{
+    display:inline-block;font-size:2.7rem;font-weight:800;line-height:1;
+    min-width:96px;padding:14px 22px;border:2px solid currentColor;border-radius:3px;
+  }
+  .grade-badge.t-great{color:var(--ok);}
+  .grade-badge.t-good{color:var(--accent);}
+  .grade-badge.t-bad{color:var(--bad);}
+  .grade-caption{color:var(--muted);font-size:.73rem;margin-top:10px;text-transform:uppercase;letter-spacing:.15em;}
+  .review{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:5px;margin:16px 0;text-align:left;}
+  .review div{font-size:.86rem;padding:7px 10px;background:var(--inset);border:1px solid var(--line);}
+  .review .r-ok{color:var(--ok);}
+  .review .r-bad{color:var(--bad);}
+  .end-actions{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;}
+  @media(pointer:coarse){
+    .btn{padding:13px 17px;}
+    .btn.small{padding:10px 15px;font-size:1rem;min-width:50px;min-height:44px;}
+    .lang-btn{padding:9px 13px;font-size:.82rem;}
+    .opt-toggle{padding:12px 14px;}
+    .toggle{padding:10px 15px;font-size:.9rem;}
+  }
+  @media(max-width:640px){
+    body{padding:12px;}
+    .panel{padding:15px;}
+    header{margin-bottom:14px;}
+    header h1{font-size:1.02rem;letter-spacing:.1em;}
+    header p{font-size:.78rem;}
+    .lang-btns{position:static;justify-content:flex-end;margin-bottom:10px;}
+    .intro{font-size:.85rem;}
+    .menu-grid{grid-template-columns:1fr;gap:8px;}
+    .menu-grid .btn{padding:15px;}
+    .prompt{font-size:1.05rem;width:100%;}
+    .hud{gap:8px;}
+    .hud .spacer{display:none;}
+    .feedback{flex-direction:column;align-items:stretch;}
+    .feedback .spacer{display:none;}
+    .feedback .btn{width:100%;}
+    .map-controls .hint{width:100%;margin-left:0;text-align:center;}
+    .end-actions{flex-direction:column;}
+    .end-actions .btn{width:100%;}
+    .review{grid-template-columns:1fr 1fr;}
+    .grade-badge{font-size:2.4rem;}
+  }
+  @media(max-width:380px){
+    .review{grid-template-columns:1fr;}
+  }
+</style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <div class="lang-btns">
+      <button class="lang-btn" data-lang="en">EN</button>
+      <button class="lang-btn" data-lang="lt">LT</button>
+    </div>
+    <h1 id="hTitle"></h1>
+    <p id="hSub"></p>
+  </header>
+
+  <section id="menu" class="panel">
+    <p class="intro" id="introP"></p>
+    <div class="opt-row">
+      <button class="opt-toggle" id="showLocToggle"></button>
+      <span class="opt-hint" id="showLocHint"></span>
+    </div>
+    <div class="menu-grid">
+      <button class="btn primary wide" data-act="study"><b id="t_studyB"></b><span id="t_studyS"></span></button>
+      <button class="btn" data-act="rivers"><b id="t_riversB"></b><span id="t_riversS"></span></button>
+      <button class="btn" data-act="lakes"><b id="t_lakesB"></b><span id="t_lakesS"></span></button>
+      <button class="btn sh-only" data-act="ranges"><b id="t_rangesB"></b><span id="t_rangesS"></span></button>
+      <button class="btn sh-only" data-act="peaks"><b id="t_peaksB"></b><span id="t_peaksS"></span></button>
+      <button class="btn wide sh-only" data-act="volcanoes"><b id="t_volcanoesB"></b><span id="t_volcanoesS"></span></button>
+      <button class="btn wide" data-act="all"><b id="t_allB"></b><span id="t_allS"></span></button>
+      <button class="btn danger wide" data-act="superhard"><b id="t_shB"></b><span id="t_shS"></span></button>
+    </div>
+  </section>
+
+  <section id="game" class="panel hidden">
+    <div class="hud" id="hud"></div>
+    <div class="progress" id="progressWrap"><div id="progressBar"></div></div>
+    <div class="map-controls">
+      <button class="btn small" id="zoomIn">+</button>
+      <button class="btn small" id="zoomOut">−</button>
+      <button class="btn small" id="zoomEurope"></button>
+      <button class="btn small" id="zoomReset"></button>
+      <span class="hint" id="panHint"></span>
+    </div>
+    <div class="map-shell">
+      <svg id="map" viewBox="0 0 360 180" preserveAspectRatio="xMidYMid meet">
+        <rect x="0" y="0" width="360" height="180" fill="#1b3a5c"/>
+        <image id="mapImg" x="0" y="0" width="360" height="180" preserveAspectRatio="none"/>
+        <g id="gridLayer"></g>
+        <g id="drawLayer"></g>
+      </svg>
+      <div class="banner hidden" id="banner"></div>
+    </div>
+    <div class="feedback" id="feedback"></div>
+  </section>
+
+  <section id="end" class="panel hidden">
+    <h2 id="endTitle"></h2>
+    <div id="gradeWrap">
+      <div class="grade-badge" id="gradeBadge"></div>
+      <div class="grade-caption" id="gradeCaption"></div>
+    </div>
+    <div class="score-big" id="endScore"></div>
+    <div class="review" id="endReview"></div>
+    <div class="end-actions">
+      <button class="btn primary" id="againBtn"></button>
+      <button class="btn" id="missedBtn"></button>
+      <button class="btn" id="menuBtn"></button>
+    </div>
+  </section>
+</div>
+
+<script>
+"use strict";
+
+const RIVERS = [
+  {name:"Amazon", nameLt:"Amazonė", tol:3.2, shapes:[[[-13,-73],[-8,-74],[-4,-69],[-3.3,-60],[-2,-55],[-0.7,-50]]]},
+  {name:"Mississippi with Missouri", nameLt:"Misisipė su Misūriu", tol:3.0, shapes:[
+      [[47.2,-95.2],[43,-91],[38.7,-90.2],[35.1,-90],[31,-91.5],[29.95,-90.07],[29.1,-89.25]],
+      [[45.9,-111.5],[46.8,-100.8],[41.26,-95.9],[38.8,-90.1]]]},
+  {name:"St. Lawrence", nameLt:"Šv. Lauryno", tol:2.8, shapes:[[[44.2,-76.5],[45.5,-73.6],[46.8,-71.2],[48.5,-68.3],[49,-64.5]]]},
+  {name:"Mackenzie", nameLt:"Makenzis", tol:3.2, shapes:[[[61.3,-118],[64,-124],[67.5,-130],[69,-135]]]},
+  {name:"Orinoco", nameLt:"Orinokas", tol:3.0, shapes:[[[2.3,-63.5],[4,-66.8],[7.9,-67.4],[8,-64],[8.6,-61]]]},
+  {name:"Volga", nameLt:"Volga", tol:3.0, shapes:[[[57.25,32.47],[56.86,35.9],[56.3,44],[53.2,50.1],[48.7,44.5],[46.3,48]]]},
+  {name:"Danube", nameLt:"Dunojus", tol:2.6, shapes:[[[47.95,8.5],[48.2,16.37],[47.5,19.04],[44.8,20.46],[45.2,29.6]]]},
+  {name:"Pechora", nameLt:"Pečiora", tol:3.0, shapes:[[[62.2,59.4],[64.5,57],[67.6,53.0],[68.2,54.5]]]},
+  {name:"Daugava", nameLt:"Dauguva", tol:2.2, shapes:[[[55.9,32],[55.2,30.2],[55.9,26.5],[56.95,24.1]]]},
+  {name:"Nemunas", nameLt:"Nemunas", tol:2.2, shapes:[[[53.3,27.0],[53.9,24.5],[54.9,23.9],[55.3,21.5]]]},
+  {name:"Nile", nameLt:"Nilas", tol:3.0, shapes:[[[0,32.5],[4.85,31.6],[9.6,31.6],[15.6,32.5],[19,30.5],[24.1,32.9],[27,31],[30,31.2],[31.5,30.5]]]},
+  {name:"Congo", nameLt:"Kongas", tol:3.0, shapes:[[[-11,27],[-6,26],[0.5,25.2],[2,21],[0,18],[-4,16],[-6.05,12.4]]]},
+  {name:"Niger", nameLt:"Nigeris", tol:3.0, shapes:[[[9.0,-10.8],[13.5,-7.5],[16.8,-3.0],[15,1],[13.5,2.1],[9,5],[5,6.5]]]},
+  {name:"Ob", nameLt:"Obė", tol:3.2, shapes:[[[52.5,85],[55,82.9],[58,80],[61,69],[64,66],[66.8,69]]]},
+  {name:"Yenisei", nameLt:"Jenisiejus", tol:3.2, shapes:[[[51.7,94.4],[56,92.9],[61,90],[66,87],[69.4,86.2],[71.8,82.7]]]},
+  {name:"Lena", nameLt:"Lena", tol:3.2, shapes:[[[53.9,108],[57,114],[60,120],[62,129.7],[66,124],[70,124],[72.5,126.5]]]},
+  {name:"Indus", nameLt:"Indas", tol:2.8, shapes:[[[31.5,81.5],[34,77],[35.9,74.6],[33,71.5],[29,70.5],[27.7,68.8],[25,68],[24,67.4]]]},
+  {name:"Ganges", nameLt:"Gangas", tol:2.8, shapes:[[[30.99,79.07],[29.95,78.16],[26.45,80.33],[25.32,83.0],[25.6,85.1],[24,88],[22.5,89.5]]]},
+];
+const LAKES = [
+  {name:"Great Lakes (USA)", nameLt:"Didieji ežerai (JAV)", tol:3.2, shapes:[[[47.6,-87.6],[45.8,-86.5],[43.5,-87.0],[44.8,-82.4],[42.2,-81.2],[43.7,-77.9]]]},
+  {name:"Victoria", nameLt:"Viktorijos", tol:3.3, shapes:[[[-1.0,33.0]]]},
+  {name:"Tanganyika", nameLt:"Tanganika", tol:2.8, shapes:[[[-3.4,29.2],[-6,29.6],[-8.7,31.1]]]},
+  {name:"Nyasa", nameLt:"Niasa", tol:2.8, shapes:[[[-9.5,34.3],[-12,34.6],[-14.4,35.3]]]},
+  {name:"Dead Sea", nameLt:"Negyvoji jūra", tol:3.3, shapes:[[[31.5,35.5]]]},
+  {name:"Baikal", nameLt:"Baikalas", tol:2.8, shapes:[[[51.5,103.7],[53.5,108],[55.8,109.5]]]},
+  {name:"Caspian Sea", nameLt:"Kaspijos jūra", tol:3.2, shapes:[[[47,51],[44,50.5],[41,50.5],[38,52],[37,53.5]]]},
+  {name:"Ladoga", nameLt:"Ladoga", tol:2.6, shapes:[[[61.0,31.5]]]},
+  {name:"Onega", nameLt:"Onega", tol:2.6, shapes:[[[61.7,35.5]]]},
+  {name:"Balkhash", nameLt:"Balkašas", tol:2.8, shapes:[[[46.0,73.5],[46.6,75.5],[45.8,78.5]]]},
+];
+const RANGES = [
+  {name:"Andes", nameLt:"Andai", tol:3.0, shapes:[[[9,-73],[2,-77],[-8,-77],[-16,-69],[-24,-67],[-33,-70],[-41,-71],[-50,-73],[-54,-69]]]},
+  {name:"Cordilleras", nameLt:"Kordiljeros", tol:3.0, shapes:[[[63,-148],[57,-133],[50,-120],[44,-113],[39,-111],[31,-108],[22,-103]]]},
+  {name:"Appalachians", nameLt:"Apalačai", tol:3.0, shapes:[[[48,-67],[44,-72],[41,-77],[37,-81],[34,-84],[33,-86]]]},
+  {name:"Scandinavian Mountains", nameLt:"Skandinavijos", tol:2.8, shapes:[[[69,20],[67,16],[65,14],[63,11],[61,9],[59,7]]]},
+  {name:"Alps", nameLt:"Alpės", tol:2.6, shapes:[[[44,6.8],[45.2,7.2],[46.4,10],[47.1,12.5],[47.3,15]]]},
+  {name:"Caucasus", nameLt:"Kaukazas", tol:2.7, shapes:[[[44.5,38],[43.5,42],[42.5,45],[41.5,47.5]]]},
+  {name:"Urals", nameLt:"Uralas", tol:3.0, shapes:[[[68,66],[66,63],[62,59],[58,59.5],[54,59],[51,57.5]]]},
+  {name:"Himalayas", nameLt:"Himalajai", tol:3.0, shapes:[[[35.5,74.5],[34,77],[31,80],[29,84],[28,88],[27.5,92],[28,95]]]},
+  {name:"Atlas Mountains", nameLt:"Atlasas", tol:2.8, shapes:[[[30.5,-9],[32,-5],[33.5,0],[35,5],[36.5,9]]]},
+  {name:"Great Dividing Range", nameLt:"Didysis vandenskyros kalnagūbris", tol:3.0, shapes:[[[-16,145],[-21,148.5],[-28,152],[-33,151],[-36,148],[-37.5,146]]]},
+];
+const PEAKS = [
+  {name:"Denali (Mount McKinley)", nameLt:"Denalis (Makinlis)", tol:2.8, shapes:[[[63.07,-151.01]]]},
+  {name:"Aconcagua", nameLt:"Akonkagva", tol:2.8, shapes:[[[-32.65,-70.01]]]},
+  {name:"Mont Blanc", nameLt:"Monblanas", tol:2.8, shapes:[[[45.83,6.86]]]},
+  {name:"Elbrus", nameLt:"Elbrusas", tol:2.8, shapes:[[[43.35,42.44]]]},
+  {name:"Kilimanjaro", nameLt:"Kilimandžaras", tol:2.8, shapes:[[[-3.07,37.35]]]},
+  {name:"Everest", nameLt:"Everestas", tol:2.8, shapes:[[[27.99,86.93]]]},
+  {name:"Mount Kosciuszko", nameLt:"Kostiuškos", tol:2.8, shapes:[[[-36.46,148.26]]]},
+];
+const VOLCANOES = [
+  {name:"Hekla", nameLt:"Hekla", tol:2.8, shapes:[[[63.98,-19.70]]]},
+  {name:"Etna", nameLt:"Etna", tol:2.8, shapes:[[[37.75,14.99]]]},
+  {name:"Vesuvius", nameLt:"Vezuvijus", tol:2.8, shapes:[[[40.82,14.43]]]},
+  {name:"Fuji", nameLt:"Fudži (Fudžijama)", tol:2.8, shapes:[[[35.36,138.73]]]},
+  {name:"Kobe", nameLt:"Kobė", tol:2.8, shapes:[[[34.69,135.20]]]},
+  {name:"Pinatubo", nameLt:"Pinatubas", tol:2.8, shapes:[[[15.13,120.35]]]},
+  {name:"Krakatoa", nameLt:"Krakatau", tol:2.8, shapes:[[[-6.10,105.42]]]},
+  {name:"Ruapehu", nameLt:"Ruapehu", tol:2.8, shapes:[[[-39.28,175.57]]]},
+];
+RIVERS.forEach(f=>f.kind="river");
+LAKES.forEach(f=>f.kind="lake");
+RANGES.forEach(f=>f.kind="range");
+PEAKS.forEach(f=>f.kind="peak");
+VOLCANOES.forEach(f=>f.kind="volcano");
+const ALL_CATS={river:RIVERS,lake:LAKES,range:RANGES,peak:PEAKS,volcano:VOLCANOES};
+const STUDY_CATS=[["rivers",RIVERS],["lakes",LAKES],["ranges",RANGES],["peaks",PEAKS],["volcanoes",VOLCANOES]];
+const CHIP={river:"chipRiver",lake:"chipLake",range:"chipRange",peak:"chipPeak",volcano:"chipVolcano"};
+const KIND_COLOR={
+  river:{main:"#3da5ff",dim:"#7ba9d4",label:"#bcdcff"},
+  lake:{main:"#2dd4bf",dim:"#5cc4b6",label:"#9ff0e4"},
+  range:{main:"#e0a955",dim:"#b89a6a",label:"#ecd3a3"},
+  peak:{main:"#d98fe0",dim:"#b58fc0",label:"#ecccf0"},
+  volcano:{main:"#f0743f",dim:"#c98a6f",label:"#f6b89e"},
+};
+
+const T = {
+  hTitle:{en:"Rivers & Lakes Map Quiz", lt:"Upių ir ežerų žemėlapio testas"},
+  hSub:{en:"Click the right place on the world map.",
+        lt:"Spustelėk tinkamą vietą pasaulio žemėlapyje."},
+  intro:{en:"You'll be given a name. Click where that place is on the map. When locations are shown, every place is marked and you pick the correct one. Tip: pinch or scroll to zoom, drag to pan.",
+         lt:"Tau bus parodytas pavadinimas. Spustelėk, kur ta vieta yra žemėlapyje. Kai vietos rodomos, kiekviena pažymėta, o tu renkiesi teisingą. Patarimas: suspausk arba sukk priartinti, tempk slinkti."},
+  showLocOn:{en:"Locations shown", lt:"Vietos rodomos"},
+  showLocOff:{en:"Blank map", lt:"Tuščias žemėlapis"},
+  showLocHint:{en:"On: every spot is marked on the map (names hidden) and you pick the right one. Off: blank map, place it from memory.",
+               lt:"Įjungta: visos vietos pažymėtos žemėlapyje (be pavadinimų) ir renkiesi teisingą. Išjungta: tuščias žemėlapis, žymi iš atminties."},
+  studyB:{en:"Study the map first", lt:"Pirma mokykis žemėlapio"},
+  studyS:{en:"See every place labelled before you test yourself", lt:"Peržiūrėk visas vietas su pavadinimais"},
+  riversB:{en:"Quiz: Rivers", lt:"Testas: Upės"},
+  riversS:{en:"18 rivers", lt:"18 upių"},
+  lakesB:{en:"Quiz: Lakes", lt:"Testas: Ežerai"},
+  lakesS:{en:"10 lakes", lt:"10 ežerų"},
+  rangesB:{en:"Quiz: Mountain ranges", lt:"Testas: Kalnagūbriai"},
+  rangesS:{en:"10 ranges", lt:"10 kalnagūbrių"},
+  peaksB:{en:"Quiz: Peaks", lt:"Testas: Viršukalnės"},
+  peaksS:{en:"7 peaks", lt:"7 viršukalnės"},
+  volcanoesB:{en:"Quiz: Volcanoes", lt:"Testas: Ugnikalniai"},
+  volcanoesS:{en:"8 volcanoes", lt:"8 ugnikalniai"},
+  allB:{en:"Quiz: Everything", lt:"Testas: Viskas"},
+  allS:{en:"All 28, rivers & lakes mixed and shuffled", lt:"Visi 28, upės ir ežerai sumaišyti"},
+  allSon:{en:"All 53, everything mixed and shuffled", lt:"Visi 53, viskas sumaišyta"},
+  superHardB:{en:"Super hard mode", lt:"Itin sunkus režimas"},
+  superHardSoff:{en:"Adds mountain ranges, peaks and volcanoes to the menu", lt:"Į meniu prideda kalnagūbrius, viršukalnes ir ugnikalnius"},
+  superHardSon:{en:"On. Tap to turn off and hide the mountains.", lt:"Įjungta. Spustelėk išjungti ir paslėpti kalnus."},
+  zoomEurope:{en:"Europe", lt:"Europa"},
+  zoomReset:{en:"Reset view", lt:"Atstatyti vaizdą"},
+  panHint:{en:"drag to move · pinch or scroll to zoom", lt:"tempk slinkti · suspausk arba sukk priartinti"},
+  banner:{en:"Map image couldn't load. Use the grid lines as a guide.",
+          lt:"Nepavyko įkelti žemėlapio. Naudokis tinklelio linijomis."},
+  chipRiver:{en:"River", lt:"Upė"},
+  chipLake:{en:"Lake", lt:"Ežeras"},
+  chipRange:{en:"Range", lt:"Kalnagūbris"},
+  chipPeak:{en:"Peak", lt:"Viršukalnė"},
+  chipVolcano:{en:"Volcano", lt:"Ugnikalnis"},
+  whereIs:{en:"Where is the ", lt:"Kur yra "},
+  question:{en:"Question", lt:"Klausimas"},
+  score:{en:"Score", lt:"Taškai"},
+  promptShown:{en:"Click the correct marked spot on the map.", lt:"Spustelėk teisingą pažymėtą vietą žemėlapyje."},
+  promptBlank:{en:"Click the map to place your answer from memory.", lt:"Spustelėk žemėlapį ir pažymėk vietą iš atminties."},
+  skip:{en:"Skip / show answer", lt:"Praleisti / rodyti atsakymą"},
+  next:{en:"Next", lt:"Toliau"},
+  results:{en:"See results", lt:"Rezultatai"},
+  correct:{en:"Correct", lt:"Teisingai"},
+  wrong:{en:"Not quite", lt:"Beveik"},
+  skipped:{en:"Skipped", lt:"Praleista"},
+  subPicked:{en:". You picked the ", lt:". Pasirinkai "},
+  subGoldIs:{en:"The gold mark shows where the ", lt:"Auksinė žymė rodo, kur iš tikrųjų yra "},
+  subReallyIs:{en:" really is.", lt:"."},
+  subKmFrom:{en:" km from the ", lt:" km nuo objekto "},
+  subNice:{en:". Nicely placed.", lt:". Gerai pataikei."},
+  subKmOff:{en:"Your click was about ", lt:"Tavo spustelėjimas buvo maždaug "},
+  subKmOff2:{en:" km off. The gold mark is the real place.", lt:" km nuošalyje. Auksinė žymė rodo tikrąją vietą."},
+  subLook:{en:"Take a good look at where it sits.", lt:"Gerai įsižiūrėk, kur jis yra."},
+  isThe:{en:". This is the ", lt:". Tai yra "},
+  studyTitle:{en:"Study mode", lt:"Mokymosi režimas"},
+  studyDesc:{en:"Memorise every location, then test yourself.", lt:"Įsimink visas vietas, tada pasitikrink."},
+  tgRivers:{en:"Rivers", lt:"Upės"},
+  tgLakes:{en:"Lakes", lt:"Ežerai"},
+  tgRanges:{en:"Ranges", lt:"Kalnagūbriai"},
+  tgPeaks:{en:"Peaks", lt:"Viršukalnės"},
+  tgVolcanoes:{en:"Volcanoes", lt:"Ugnikalniai"},
+  readyAll:{en:"I'm ready, quiz everything", lt:"Pasiruošęs, testuoti viską"},
+  quizRivers:{en:"Quiz rivers", lt:"Testas: upės"},
+  quizLakes:{en:"Quiz lakes", lt:"Testas: ežerai"},
+  toMenu:{en:"Menu", lt:"Meniu"},
+  endTitle:{en:"Quiz complete!", lt:"Testas baigtas!"},
+  gradeA:{en:"Outstanding.", lt:"Puikiai."},
+  gradeB:{en:"Solid. Review the misses.", lt:"Gerai. Peržiūrėk klaidas."},
+  gradeC:{en:"Getting there. Keep practising.", lt:"Jau arti. Mokykis toliau."},
+  gradeD:{en:"Study the map and try again.", lt:"Mokykis žemėlapio ir bandyk dar kartą."},
+  gradeLabel:{en:"Grade", lt:"Pažymys"},
+  failNote:{en:"not passing", lt:"neišlaikyta"},
+  again:{en:"Play again", lt:"Žaisti dar kartą"},
+  missed:{en:"Practise the ones I missed", lt:"Kartoti tai, ką suklydau"},
+  nothingMissed:{en:"Nothing missed.", lt:"Nieko nesuklydai."},
+  backMenu:{en:"Back to menu", lt:"Atgal į meniu"},
+};
+let lang = "en";
+const tr = k => (T[k] ? T[k][lang] : k);
+const fname = f => (lang==="lt" ? f.nameLt : f.name);
+
+const projX = lon => lon + 180;
+const projY = lat => 90 - lat;
+function segDist(p,a,b){
+  const px=p[1],py=p[0],ax=a[1],ay=a[0],bx=b[1],by=b[0];
+  const dx=bx-ax,dy=by-ay,len2=dx*dx+dy*dy;
+  let t=len2>0?((px-ax)*dx+(py-ay)*dy)/len2:0;
+  t=Math.max(0,Math.min(1,t));
+  const fx=ax+t*dx,fy=ay+t*dy;
+  return {dist:Math.hypot(px-fx,py-fy),foot:[fy,fx]};
+}
+function featureDist(p,feature){
+  let best={dist:Infinity,foot:null};
+  for(const shape of feature.shapes){
+    if(shape.length===1){
+      const a=shape[0],d=Math.hypot(p[1]-a[1],p[0]-a[0]);
+      if(d<best.dist) best={dist:d,foot:[a[0],a[1]]};
+    } else {
+      for(let i=0;i<shape.length-1;i++){
+        const r=segDist(p,shape[i],shape[i+1]);
+        if(r.dist<best.dist) best=r;
+      }
+    }
+  }
+  return best;
+}
+function nearestFeature(p,pool){
+  let best={feature:null,dist:Infinity,foot:null};
+  for(const f of pool){
+    const d=featureDist(p,f);
+    if(d.dist<best.dist) best={feature:f,dist:d.dist,foot:d.foot};
+  }
+  return best;
+}
+function haversine(a,b){
+  const R=6371,k=Math.PI/180;
+  const dLat=(b[0]-a[0])*k,dLon=(b[1]-a[1])*k;
+  const h=Math.sin(dLat/2)**2+Math.cos(a[0]*k)*Math.cos(b[0]*k)*Math.sin(dLon/2)**2;
+  return 2*R*Math.asin(Math.min(1,Math.sqrt(h)));
+}
+function labelPoint(feature){
+  let s=feature.shapes[0];
+  for(const sh of feature.shapes) if(sh.length>s.length) s=sh;
+  return s[Math.floor((s.length-1)/2)];
+}
+function featureBBox(feature){
+  let mnLat=90,mxLat=-90,mnLon=180,mxLon=-180;
+  for(const sh of feature.shapes) for(const p of sh){
+    mnLat=Math.min(mnLat,p[0]);mxLat=Math.max(mxLat,p[0]);
+    mnLon=Math.min(mnLon,p[1]);mxLon=Math.max(mxLon,p[1]);
+  }
+  return {mnLat,mxLat,mnLon,mxLon};
+}
+
+const SVGNS="http://www.w3.org/2000/svg";
+const svg=document.getElementById("map");
+const mapImg=document.getElementById("mapImg");
+const banner=document.getElementById("banner");
+const MAP_URLS=[
+  "https://upload.wikimedia.org/wikipedia/commons/thumb/8/83/Equirectangular_projection_SW.jpg/2560px-Equirectangular_projection_SW.jpg",
+  "https://upload.wikimedia.org/wikipedia/commons/8/83/Equirectangular_projection_SW.jpg"
+];
+(function loadMap(i){
+  if(i>=MAP_URLS.length){ banner.classList.remove("hidden"); return; }
+  const im=new Image();
+  im.onload=()=>mapImg.setAttribute("href",MAP_URLS[i]);
+  im.onerror=()=>loadMap(i+1);
+  im.src=MAP_URLS[i];
+})(0);
+
+(function drawGrid(){
+  const g=document.getElementById("gridLayer");
+  const mk=(tag,at)=>{const e=document.createElementNS(SVGNS,tag);for(const k in at)e.setAttribute(k,at[k]);return e;};
+  for(let lon=-180;lon<=180;lon+=30){
+    const x=projX(lon),main=(lon===0);
+    g.appendChild(mk("line",{x1:x,y1:0,x2:x,y2:180,stroke:"#fff",
+      "stroke-opacity":main?0.32:0.13,"stroke-width":main?1.4:1,"vector-effect":"non-scaling-stroke"}));
+  }
+  for(let lat=-90;lat<=90;lat+=30){
+    const y=projY(lat),main=(lat===0);
+    g.appendChild(mk("line",{x1:0,y1:y,x2:360,y2:y,stroke:"#fff",
+      "stroke-opacity":main?0.32:0.13,"stroke-width":main?1.4:1,"vector-effect":"non-scaling-stroke"}));
+  }
+})();
+
+const vb={x:0,y:0,w:360,h:180};
+const MINW=30;
+function clampVB(){
+  vb.w=Math.min(360,Math.max(MINW,vb.w));vb.h=vb.w/2;
+  vb.x=Math.min(360-vb.w,Math.max(0,vb.x));
+  vb.y=Math.min(180-vb.h,Math.max(0,vb.y));
+}
+function applyVB(){
+  clampVB();
+  svg.setAttribute("viewBox",`${vb.x} ${vb.y} ${vb.w} ${vb.h}`);
+  render();
+}
+function zoomAt(cx,cy,factor){
+  const r=svg.getBoundingClientRect();
+  const fx=(cx-r.left)/r.width,fy=(cy-r.top)/r.height;
+  const ux=vb.x+fx*vb.w,uy=vb.y+fy*vb.h;
+  vb.w=Math.min(360,Math.max(MINW,vb.w*factor));vb.h=vb.w/2;
+  vb.x=ux-fx*vb.w;vb.y=uy-fy*vb.h;
+  applyVB();
+}
+function centerZoom(f){const r=svg.getBoundingClientRect();zoomAt(r.left+r.width/2,r.top+r.height/2,f);}
+document.getElementById("zoomIn").onclick =()=>centerZoom(0.62);
+document.getElementById("zoomOut").onclick=()=>centerZoom(1.6);
+document.getElementById("zoomReset").onclick=()=>{vb.x=0;vb.y=0;vb.w=360;applyVB();};
+document.getElementById("zoomEurope").onclick=()=>{vb.x=150;vb.y=5;vb.w=120;applyVB();};
+svg.addEventListener("wheel",e=>{e.preventDefault();zoomAt(e.clientX,e.clientY,e.deltaY<0?0.82:1.22);},{passive:false});
+
+const pointers=new Map();
+let panLast=null,pinchPrev=null,downInfo=null;
+function pinchState(){
+  const p=[...pointers.values()];
+  return {dist:Math.hypot(p[0].x-p[1].x,p[0].y-p[1].y),
+          cx:(p[0].x+p[1].x)/2,cy:(p[0].y+p[1].y)/2};
+}
+svg.addEventListener("pointerdown",e=>{
+  svg.setPointerCapture(e.pointerId);
+  pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});
+  svg.classList.add("grabbing");
+  if(pointers.size===1){
+    downInfo={x:e.clientX,y:e.clientY,moved:false};
+    panLast={x:e.clientX,y:e.clientY};
+  } else {
+    downInfo=null;panLast=null;
+    pinchPrev=pinchState();
+  }
+});
+svg.addEventListener("pointermove",e=>{
+  if(!pointers.has(e.pointerId))return;
+  pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});
+  const r=svg.getBoundingClientRect();
+  if(pointers.size>=2){
+    const ps=pinchState();
+    if(pinchPrev && pinchPrev.dist>0 && ps.dist>0){
+      const fx=(ps.cx-r.left)/r.width,fy=(ps.cy-r.top)/r.height;
+      const ux=vb.x+fx*vb.w,uy=vb.y+fy*vb.h;
+      vb.w=Math.min(360,Math.max(MINW,vb.w*(pinchPrev.dist/ps.dist)));vb.h=vb.w/2;
+      vb.x=ux-fx*vb.w-(ps.cx-pinchPrev.cx)/r.width*vb.w;
+      vb.y=uy-fy*vb.h-(ps.cy-pinchPrev.cy)/r.height*vb.h;
+      applyVB();
+    }
+    pinchPrev=ps;
+  } else if(pointers.size===1 && panLast){
+    const dx=e.clientX-panLast.x,dy=e.clientY-panLast.y;
+    if(downInfo && Math.hypot(e.clientX-downInfo.x,e.clientY-downInfo.y)>8) downInfo.moved=true;
+    vb.x-=dx/r.width*vb.w;vb.y-=dy/r.height*vb.h;
+    panLast={x:e.clientX,y:e.clientY};
+    applyVB();
+  }
+});
+function endPointer(e){
+  const wasClick=pointers.size===1 && downInfo && !downInfo.moved;
+  pointers.delete(e.pointerId);
+  pinchPrev = pointers.size>=2 ? pinchState() : null;
+  if(pointers.size===1){
+    const rem=[...pointers.values()][0];
+    panLast={x:rem.x,y:rem.y};downInfo=null;
+  } else if(pointers.size===0){
+    svg.classList.remove("grabbing");
+    if(wasClick) handleClick(e.clientX,e.clientY);
+    panLast=null;downInfo=null;
+  }
+}
+svg.addEventListener("pointerup",endPointer);
+svg.addEventListener("pointercancel",endPointer);
+function clientToLatLon(cx,cy){
+  const r=svg.getBoundingClientRect();
+  const ux=vb.x+(cx-r.left)/r.width*vb.w;
+  const uy=vb.y+(cy-r.top)/r.height*vb.h;
+  return [90-uy,ux-180];
+}
+
+const drawLayer=document.getElementById("drawLayer");
+function el(tag,at){const e=document.createElementNS(SVGNS,tag);for(const k in at)e.setAttribute(k,at[k]);return e;}
+function shapePath(shape){
+  return shape.map((p,i)=>(i?"L":"M")+projX(p[1]).toFixed(2)+" "+projY(p[0]).toFixed(2)).join(" ");
+}
+function uPerPx(){return vb.w/Math.max(1,svg.getBoundingClientRect().width);}
+
+function drawShape(feature,color,wMain,wHalo,opacity){
+  const u=uPerPx();
+  const g=el("g",opacity!=null?{opacity}:{});
+  for(const shape of feature.shapes){
+    if(shape.length===1){
+      const X=projX(shape[0][1]),Y=projY(shape[0][0]);
+      g.appendChild(el("circle",{cx:X,cy:Y,r:13*u,fill:"none",stroke:"#0d1b2a",
+        "stroke-width":wHalo,"vector-effect":"non-scaling-stroke"}));
+      g.appendChild(el("circle",{cx:X,cy:Y,r:13*u,fill:"none",stroke:color,
+        "stroke-width":wMain,"vector-effect":"non-scaling-stroke"}));
+      g.appendChild(el("circle",{cx:X,cy:Y,r:2.4*u,fill:color}));
+    } else {
+      const d=shapePath(shape);
+      g.appendChild(el("path",{d,fill:"none",stroke:"#0d1b2a","stroke-width":wHalo,
+        "stroke-linejoin":"round","stroke-linecap":"round","vector-effect":"non-scaling-stroke"}));
+      g.appendChild(el("path",{d,fill:"none",stroke:color,"stroke-width":wMain,
+        "stroke-linejoin":"round","stroke-linecap":"round","vector-effect":"non-scaling-stroke"}));
+    }
+  }
+  drawLayer.appendChild(g);
+}
+function drawLabel(feature,color){
+  const u=uPerPx(),p=labelPoint(feature);
+  let X=projX(p[1]),Y=projY(p[0])-9*u;
+  const fs=13*u;
+  X=Math.min(vb.x+vb.w-2,Math.max(vb.x+2,X));
+  Y=Math.min(vb.y+vb.h-2,Math.max(vb.y+fs,Y));
+  const t=el("text",{x:X,y:Y,"font-size":fs,"font-weight":"800","text-anchor":"middle",
+    "paint-order":"stroke",stroke:"#0d1b2a","stroke-width":fs*0.32,"stroke-linejoin":"round",fill:color});
+  t.textContent=fname(feature);
+  drawLayer.appendChild(t);
+}
+function drawMarker(lat,lon,color){
+  const u=uPerPx(),X=projX(lon),Y=projY(lat);
+  drawLayer.appendChild(el("circle",{cx:X,cy:Y,r:6*u,fill:color,stroke:"#0d1b2a",
+    "stroke-width":2,"vector-effect":"non-scaling-stroke"}));
+}
+function drawMissLine(from,to){
+  drawLayer.appendChild(el("line",{x1:projX(from[1]),y1:projY(from[0]),
+    x2:projX(to[1]),y2:projY(to[0]),stroke:"#f87171","stroke-width":2,
+    "stroke-dasharray":"4 3","vector-effect":"non-scaling-stroke"}));
+}
+
+const screens={menu:document.getElementById("menu"),game:document.getElementById("game"),end:document.getElementById("end")};
+function show(name){for(const k in screens)screens[k].classList.toggle("hidden",k!==name);}
+
+let mode="quiz";
+let showLocations=true;
+try{ const s=localStorage.getItem("rl_showloc"); if(s==="0") showLocations=false; }catch(e){}
+let superHard=false;
+try{ const s=localStorage.getItem("rl_superhard"); if(s==="1") superHard=true; }catch(e){}
+let queue=[],pool=[],qi=0,score=0,results=[],answered=false,lastGuess=null;
+let studyShow={rivers:true,lakes:true,ranges:true,peaks:true,volcanoes:true};
+
+function render(){
+  while(drawLayer.firstChild) drawLayer.removeChild(drawLayer.firstChild);
+  if(mode==="study"){
+    const cats=superHard?STUDY_CATS:STUDY_CATS.slice(0,2);
+    for(const [key,arr] of cats) if(studyShow[key]) arr.forEach(f=>drawShape(f,KIND_COLOR[f.kind].main,3,7,1));
+    for(const [key,arr] of cats) if(studyShow[key]) arr.forEach(f=>drawLabel(f,KIND_COLOR[f.kind].label));
+    return;
+  }
+  if(showLocations){
+    for(const f of pool) drawShape(f, KIND_COLOR[f.kind].dim, 2.4,4.5,0.55);
+  }
+  if(answered){
+    const target=queue[qi].feature;
+    if(lastGuess && !lastGuess.correct && lastGuess.clicked && lastGuess.clicked!==target){
+      drawShape(lastGuess.clicked,"#f87171",4,8,0.95);
+      drawLabel(lastGuess.clicked,"#ffc9c9");
+    }
+    drawShape(target,"#ffd23f",5,9,1);
+    drawLabel(target,"#ffd23f");
+    if(lastGuess){
+      if(!lastGuess.correct && lastGuess.foot) drawMissLine(lastGuess.click,lastGuess.foot);
+      drawMarker(lastGuess.click[0],lastGuess.click[1],lastGuess.correct?"#34d399":"#f87171");
+    }
+  }
+}
+
+function shuffle(a){a=a.slice();for(let i=a.length-1;i>0;i--){const j=(Math.random()*(i+1))|0;[a[i],a[j]]=[a[j],a[i]];}return a;}
+function poolFor(items){
+  const types=new Set(items.map(i=>i.type));
+  let p=[];
+  for(const t of types) p=p.concat(ALL_CATS[t]||[]);
+  return p;
+}
+function startQuiz(items){
+  mode="quiz";
+  queue=shuffle(items);pool=poolFor(items);
+  qi=0;score=0;results=[];answered=false;lastGuess=null;
+  vb.x=0;vb.y=0;vb.w=360;
+  show("game");
+  document.getElementById("progressWrap").style.display="";
+  applyVB();
+  showQuestion();
+}
+function showQuestion(){
+  answered=false;lastGuess=null;
+  renderHUD();
+  const fb=document.getElementById("feedback");
+  fb.innerHTML=`<span class="stat">${showLocations?tr("promptShown"):tr("promptBlank")}</span>`+
+    `<span class="spacer"></span>`+
+    `<button class="btn small" id="skipBtn">${tr("skip")}</button>`;
+  document.getElementById("skipBtn").onclick=()=>resolve(null);
+  document.getElementById("progressBar").style.width=(qi/queue.length*100)+"%";
+  render();
+}
+function renderHUD(){
+  const it=queue[qi];
+  document.getElementById("hud").innerHTML=
+    `<span class="chip ${it.type}">${tr(CHIP[it.type])}</span>`+
+    `<span class="prompt">${tr("whereIs")}<b>${fname(it.feature)}</b>?</span>`+
+    `<span class="spacer"></span>`+
+    `<span class="stat">${tr("question")} <b>${qi+1}</b> / ${queue.length}</span>`+
+    `<span class="stat" id="scoreStat">${tr("score")} <b>${score}</b></span>`;
+}
+function handleClick(cx,cy){
+  if(mode!=="quiz"||answered)return;
+  resolve(clientToLatLon(cx,cy));
+}
+function resolve(click){
+  if(answered)return;
+  answered=true;
+  const target=queue[qi].feature;
+  let correct=false,foot=null,km=null,clicked=null;
+  if(click){
+    if(showLocations){
+      const nf=nearestFeature(click,pool);
+      clicked=nf.feature;
+      correct=(nf.feature===target);
+    } else {
+      const d=featureDist(click,target);
+      correct=d.dist<=target.tol;
+    }
+    const dt=featureDist(click,target);
+    foot=dt.foot;
+    km=Math.round(haversine(click,dt.foot));
+  }
+  lastGuess=click?{click,correct,foot,clicked}:null;
+  if(correct) score++;
+  results.push({name:fname(target),type:queue[qi].type,correct,feature:target});
+
+  const bb=featureBBox(target),pad=4;
+  const inside = bb.mnLon-pad>=vb.x-180 && bb.mxLon+pad<=vb.x+vb.w-180
+    && (90-bb.mxLat)-pad>=vb.y && (90-bb.mnLat)+pad<=vb.y+vb.h;
+  if(!inside){vb.x=0;vb.y=0;vb.w=360;}
+  applyVB();
+
+  showFeedback(km,clicked);
+}
+function showFeedback(km,clicked){
+  const it=queue[qi],target=it.feature,fb=document.getElementById("feedback");
+  const tName=fname(target);
+  let head,sub;
+  if(!lastGuess){
+    head=tr("skipped"); sub=tr("subLook");
+  } else if(lastGuess.correct){
+    head=tr("correct");
+    sub = showLocations
+      ? km+tr("subKmFrom")+tName+"."
+      : km+tr("subKmFrom")+tName+tr("subNice");
+  } else {
+    head=tr("wrong");
+    if(showLocations){
+      const cName = clicked?fname(clicked):"-";
+      head += tr("subPicked")+cName+".";
+      sub = tr("subGoldIs")+tName+tr("subReallyIs");
+    } else {
+      head += tr("isThe")+tName+".";
+      sub = tr("subKmOff")+km+tr("subKmOff2");
+    }
+  }
+  const cls = (lastGuess&&lastGuess.correct)?"ok":"bad";
+  const last=qi===queue.length-1;
+  fb.innerHTML=
+    `<span class="verdict ${cls}">${head}<small>${sub}</small></span>`+
+    `<span class="spacer"></span>`+
+    `<button class="btn primary" id="nextBtn">${last?tr("results"):tr("next")}</button>`;
+  document.getElementById("nextBtn").onclick=next;
+  const ss=document.getElementById("scoreStat");
+  if(ss) ss.innerHTML=`${tr("score")} <b>${score}</b>`;
+  document.getElementById("progressBar").style.width=((qi+1)/queue.length*100)+"%";
+}
+function next(){
+  if(qi<queue.length-1){qi++;showQuestion();}
+  else endQuiz();
+}
+function endQuiz(){
+  show("end");
+  renderEnd();
+}
+function gradeFor(pct){
+  if(lang==="lt"){
+    const n = pct>=95?10:pct>=85?9:pct>=75?8:pct>=65?7:pct>=55?6
+            :pct>=45?5:pct>=35?4:pct>=25?3:pct>=15?2:1;
+    return {label:String(n), pass:n>=4};
+  }
+  const bands=[[97,"A+"],[93,"A"],[90,"A-"],[87,"B+"],[83,"B"],[80,"B-"],
+               [77,"C+"],[73,"C"],[70,"C-"],[67,"D+"],[63,"D"],[60,"D-"],
+               [50,"F+"],[30,"F"],[0,"F-"]];
+  for(const [min,lab] of bands) if(pct>=min) return {label:lab, pass:pct>=60};
+  return {label:"F-", pass:false};
+}
+function renderEnd(){
+  document.getElementById("endTitle").textContent=tr("endTitle");
+  const pct=Math.round(score/queue.length*100);
+  const g=gradeFor(pct);
+  const tier=pct>=80?"t-great":pct>=55?"t-good":"t-bad";
+  const badge=document.getElementById("gradeBadge");
+  badge.textContent=g.label;
+  badge.className="grade-badge "+tier;
+  document.getElementById("gradeCaption").textContent=
+    tr("gradeLabel")+(g.pass?"":" · "+tr("failNote"));
+  const gKey=pct>=90?"gradeA":pct>=70?"gradeB":pct>=50?"gradeC":"gradeD";
+  document.getElementById("endScore").innerHTML=
+    `${score} / ${queue.length} <small>(${pct}%)</small><br><span style="font-size:1.05rem">${tr(gKey)}</span>`;
+  document.getElementById("endReview").innerHTML=results.map(r=>
+    `<div class="${r.correct?'r-ok':'r-bad'}">${r.correct?'✓':'✗'} ${r.name}</div>`).join("");
+  document.getElementById("againBtn").textContent=tr("again");
+  document.getElementById("missedBtn").textContent=tr("missed");
+  document.getElementById("menuBtn").textContent=tr("backMenu");
+}
+
+document.addEventListener("keydown",e=>{
+  if((e.key==="Enter"||e.key===" ")&&!screens.game.classList.contains("hidden")){
+    const n=document.getElementById("nextBtn");
+    if(n){e.preventDefault();n.click();}
+  }
+});
+
+function startStudy(){
+  mode="study";answered=false;
+  vb.x=0;vb.y=0;vb.w=360;
+  show("game");
+  document.getElementById("progressWrap").style.display="none";
+  renderStudyUI();
+  applyVB();
+}
+function renderStudyUI(){
+  const tgs=[["rivers","river","tgRivers"],["lakes","lake","tgLakes"],
+             ["ranges","range","tgRanges"],["peaks","peak","tgPeaks"],
+             ["volcanoes","volcano","tgVolcanoes"]];
+  const shown=superHard?tgs:tgs.slice(0,2);
+  document.getElementById("hud").innerHTML=
+    `<span class="prompt">${tr("studyTitle")}</span>`+
+    `<span class="stat">${tr("studyDesc")}</span>`+
+    `<span class="spacer"></span>`+
+    shown.map(([k,cls,lab])=>`<button class="toggle ${cls} ${studyShow[k]?'on':''}" data-tg="${k}">${tr(lab)}</button>`).join("");
+  document.getElementById("hud").querySelectorAll("[data-tg]").forEach(b=>{
+    b.onclick=function(){const k=b.dataset.tg;studyShow[k]=!studyShow[k];b.classList.toggle("on",studyShow[k]);render();};
+  });
+  const fb=document.getElementById("feedback");
+  fb.innerHTML=
+    `<button class="btn primary" data-act="all">${tr("readyAll")}</button>`+
+    `<span class="spacer"></span>`+
+    `<button class="btn" id="toMenu">${tr("toMenu")}</button>`;
+  document.getElementById("toMenu").onclick=goMenu;
+  fb.querySelectorAll("[data-act]").forEach(b=>b.onclick=()=>menuAction(b.dataset.act));
+}
+
+function toggleSuperHard(){
+  superHard=!superHard;
+  try{localStorage.setItem("rl_superhard",superHard?"1":"0");}catch(e){}
+  applyStatic();
+}
+function menuAction(act){
+  if(act==="study"){startStudy();return;}
+  if(act==="superhard"){toggleSuperHard();return;}
+  const mk=(arr,type)=>arr.map(f=>({type,feature:f}));
+  if(act==="rivers")    startQuiz(mk(RIVERS,"river"));
+  if(act==="lakes")     startQuiz(mk(LAKES,"lake"));
+  if(act==="ranges")    startQuiz(mk(RANGES,"range"));
+  if(act==="peaks")     startQuiz(mk(PEAKS,"peak"));
+  if(act==="volcanoes") startQuiz(mk(VOLCANOES,"volcano"));
+  if(act==="all"){
+    let items=[...mk(RIVERS,"river"),...mk(LAKES,"lake")];
+    if(superHard) items=items.concat(mk(RANGES,"range"),mk(PEAKS,"peak"),mk(VOLCANOES,"volcano"));
+    startQuiz(items);
+  }
+}
+document.querySelectorAll("[data-act]").forEach(b=>{
+  if(b.closest("#menu")) b.onclick=()=>menuAction(b.dataset.act);
+});
+document.getElementById("showLocToggle").onclick=function(){
+  showLocations=!showLocations;
+  try{localStorage.setItem("rl_showloc",showLocations?"1":"0");}catch(e){}
+  applyStatic();
+};
+function goMenu(){show("menu");}
+document.getElementById("againBtn").onclick=()=>startQuiz(queue);
+document.getElementById("menuBtn").onclick =goMenu;
+document.getElementById("missedBtn").onclick=()=>{
+  const missed=results.filter(r=>!r.correct).map(r=>({type:r.type,feature:r.feature}));
+  if(missed.length) startQuiz(missed);
+  else document.getElementById("missedBtn").textContent=tr("nothingMissed");
+};
+
+function applyStatic(){
+  document.documentElement.lang=lang;
+  document.getElementById("hTitle").textContent=tr("hTitle");
+  document.getElementById("hSub").textContent=tr("hSub");
+  document.getElementById("introP").textContent=tr("intro");
+  const tg=document.getElementById("showLocToggle");
+  tg.textContent=showLocations?tr("showLocOn"):tr("showLocOff");
+  tg.classList.toggle("on",showLocations);
+  document.getElementById("showLocHint").textContent=tr("showLocHint");
+  document.getElementById("t_studyB").textContent=tr("studyB");
+  document.getElementById("t_studyS").textContent=tr("studyS");
+  document.getElementById("t_riversB").textContent=tr("riversB");
+  document.getElementById("t_riversS").textContent=tr("riversS");
+  document.getElementById("t_lakesB").textContent=tr("lakesB");
+  document.getElementById("t_lakesS").textContent=tr("lakesS");
+  document.getElementById("t_rangesB").textContent=tr("rangesB");
+  document.getElementById("t_rangesS").textContent=tr("rangesS");
+  document.getElementById("t_peaksB").textContent=tr("peaksB");
+  document.getElementById("t_peaksS").textContent=tr("peaksS");
+  document.getElementById("t_volcanoesB").textContent=tr("volcanoesB");
+  document.getElementById("t_volcanoesS").textContent=tr("volcanoesS");
+  document.getElementById("t_allB").textContent=tr("allB");
+  document.getElementById("t_allS").textContent=tr(superHard?"allSon":"allS");
+  document.getElementById("t_shB").textContent=tr("superHardB");
+  document.getElementById("t_shS").textContent=tr(superHard?"superHardSon":"superHardSoff");
+  document.body.classList.toggle("superhard",superHard);
+  document.getElementById("zoomEurope").textContent=tr("zoomEurope");
+  document.getElementById("zoomReset").textContent=tr("zoomReset");
+  document.getElementById("panHint").textContent=tr("panHint");
+  document.getElementById("banner").textContent=tr("banner");
+  document.querySelectorAll(".lang-btn").forEach(b=>b.classList.toggle("on",b.dataset.lang===lang));
+}
+function setLang(l){
+  lang=l;
+  applyStatic();
+  if(!screens.game.classList.contains("hidden")){
+    if(mode==="study"){ renderStudyUI(); }
+    else { renderHUD(); answered?showFeedback(lastGuess?Math.round(haversine(lastGuess.click,lastGuess.foot)):null,lastGuess?lastGuess.clicked:null):showQuestion(); }
+    render();
+  }
+  if(!screens.end.classList.contains("hidden")) renderEnd();
+}
+document.querySelectorAll(".lang-btn").forEach(b=>b.onclick=()=>setLang(b.dataset.lang));
+
+window.addEventListener("resize",render);
+applyStatic();
+</script>
+</body>
+</html>
